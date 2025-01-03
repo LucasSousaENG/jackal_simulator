@@ -1,0 +1,73 @@
+<launch>
+  <arg name="use_sim_time" default="true" />
+  <arg name="gui" default="true" />
+  <arg name="headless" default="false" />
+  <!-- <arg name="world_name" default="$(find jackal_gazebo)/worlds/jackal_race.world" /> -->
+
+  <!-- Lucas World -->
+  <arg name="world" default="fabrica2"/>
+  <include file="$(find youbot_gazebo_worlds)/launch/$(arg world).launch">
+    <!-- <arg name="debug" value="0" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="world_name" value="$(arg world)" /> -->
+  </include>
+
+  <!-- Define a posicao inicial do kinect e dos argumentos para spawn de robo -->
+  <arg name="kinect_pos_z" default="3.0"/>
+  <arg name="init_pos_x" default="0.5"/>
+  <arg name="init_pos_y" default="0.0"/>
+  <arg name="init_pos_z" default="0.0"/>
+  <arg name="init_yaw" default="-1.5708"/>
+  
+
+  <!-- Short-term hack to support the original front_laser:=true argument for spawning
+       the simulator. This will be removed in favour of using the config:=x arg instead. -->
+  <arg name="front_laser" default="false" />
+  <arg name="default_config" value="front_laser" if="$(arg front_laser)" />
+  <arg name="default_config" value="base" unless="$(arg front_laser)" />
+  <!-- end of hack -->
+
+  <!-- Configuration of Jackal which you would like to simulate.
+       See jackal_description for details. -->
+  <arg name="config" default="$(arg default_config)" />
+
+  <!-- Optionally enable teleop for the simulation -->
+  <arg name="joystick" default="true" />
+
+  <!-- Launch Gazebo with the specified world -->
+  <!-- <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="debug" value="0" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="world_name" value="$(arg world_name)" />
+  </include> -->
+
+  <!-- Youbot description -->
+  <param name="robot_description" command="$(find xacro)/xacro.py $(find youbot_description)/robots/youbot.urdf.xacro" />
+
+  <param name="kinect_camera" command="$(find xacro)/xacro.py $(find youbot_description)/robots/kinect.urdf.xacro" />
+
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_robot" respawn="false" output="screen"
+    args="-param robot_description
+          -urdf
+          -x $(arg init_pos_x)
+          -y $(arg init_pos_y)
+          -z $(arg init_pos_z)
+          -Y $(arg init_yaw)
+          -model youbot">
+  </node>
+
+  <!-- launch joint state controller -->
+  <include file="$(find youbot_gazebo_control)/launch/joint_state_controller.launch" />
+
+  <!-- launch arm and gripper controller -->
+  <include file="$(find youbot_gazebo_control)/launch/arm_controller.launch" />
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="100.0" />
+  </node>
+
+</launch>
